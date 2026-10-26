@@ -33,6 +33,7 @@
     }
 
     .frame {
+      position: relative;
       overflow: hidden;
       border: 3px solid #f5d78c;
       border-radius: 18px;
@@ -46,6 +47,51 @@
       height: auto;
       aspect-ratio: 9 / 16;
       touch-action: none;
+    }
+
+    .game-dialog {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: #12142dcc;
+      text-align: center;
+    }
+
+    .game-dialog[hidden] { display: none; }
+
+    .dialog-card {
+      width: min(100%, 390px);
+      padding: 28px 22px;
+      border: 1px solid #ffe2a0;
+      border-radius: 20px;
+      background: linear-gradient(150deg, #34305f, #211d43);
+      box-shadow: 0 16px 45px #0008;
+    }
+
+    .dialog-card h2 {
+      margin: 0 0 12px;
+      font-size: clamp(1.8rem, 8vw, 2.5rem);
+    }
+
+    .dialog-card p {
+      margin: 0;
+      color: #f0eaff;
+      line-height: 1.55;
+    }
+
+    .dialog-card button {
+      margin-top: 22px;
+      padding: 12px 22px;
+      border: 0;
+      border-radius: 12px;
+      background: #f5d78c;
+      color: #282044;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
     }
 
     .help {
@@ -87,8 +133,15 @@
     <h1>🫶 Herzfänger</h1>
     <div class="frame">
       <canvas id="game" width="540" height="960" aria-label="Fange die fallenden Herzen mit deinen Händen"></canvas>
+      <div class="game-dialog" id="gameDialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle" aria-describedby="dialogMessage">
+        <div class="dialog-card">
+          <h2 id="dialogTitle">So wird gespielt</h2>
+          <p id="dialogMessage">Fange die roten Herzen mit deinen Händen. Goldene Herzen geben dir ein zusätzliches Leben. Wenn du ein Herz verpasst, verlierst du ein Leben.</p>
+          <button id="dialogButton" type="button">Spiel starten</button>
+        </div>
+      </div>
     </div>
-    <p class="help">Kippe dein Handy oder nutze ← → / A-D. Goldene Herzen schenken Leben. Bei 0 Leben ist Game Over; R startet neu.</p>
+    <p class="help">Kippe dein Handy oder nutze ← → / A-D. Goldene Herzen schenken Leben. R startet neu.</p>
     <button class="motion-button" id="motionButton" type="button">Bewegungssteuerung aktivieren</button>
     <p class="motion-status" id="motionStatus" role="status" aria-live="polite"></p>
   </main>
@@ -103,6 +156,10 @@
     let sparkles = [];
     const motionButton = document.querySelector("#motionButton");
     const motionStatus = document.querySelector("#motionStatus");
+    const gameDialog = document.querySelector("#gameDialog");
+    const dialogTitle = document.querySelector("#dialogTitle");
+    const dialogMessage = document.querySelector("#dialogMessage");
+    const dialogButton = document.querySelector("#dialogButton");
 
     let hands;
     let score;
@@ -110,6 +167,7 @@
     let spawnTimer;
     let lastTime = 0;
     let gameOver;
+    let started = false;
     let motionEnabled = false;
     let neutralGamma = null;
     let tiltPosition = 0;
@@ -160,6 +218,20 @@
       tiltPosition = 0;
     }
 
+    function showGameOver() {
+      dialogTitle.textContent = "Game Over";
+      dialogMessage.textContent = `Dein Leben ist aufgebraucht. Du hast ${score} Herzen gefangen.`;
+      dialogButton.textContent = "Nochmal spielen";
+      gameDialog.hidden = false;
+      dialogButton.focus();
+    }
+
+    function startGame() {
+      if (gameOver) resetGame();
+      started = true;
+      gameDialog.hidden = true;
+    }
+
     function moveHandsTo(clientX) {
       const bounds = canvas.getBoundingClientRect();
       const scale = WIDTH / bounds.width;
@@ -169,7 +241,10 @@
     window.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       if (["arrowleft", "arrowright"].includes(key)) event.preventDefault();
-      if (key === "r") resetGame();
+      if (key === "r") {
+        resetGame();
+        startGame();
+      }
       if (key === "arrowleft" || key === "a") keys.left = true;
       if (key === "arrowright" || key === "d") keys.right = true;
     });
@@ -181,7 +256,7 @@
     });
 
     canvas.addEventListener("pointerdown", (event) => {
-      if (gameOver) resetGame();
+      if (!started || gameOver) return;
       canvas.setPointerCapture(event.pointerId);
       moveHandsTo(event.clientX);
     });
@@ -189,6 +264,7 @@
       if (event.buttons || event.pointerType === "touch") moveHandsTo(event.clientX);
     });
     motionButton.addEventListener("click", enableMotionControls);
+    dialogButton.addEventListener("click", startGame);
 
     function createHeart() {
       const golden = Math.random() < 0.05;
@@ -205,7 +281,7 @@
     }
 
     function update(dt) {
-      if (gameOver) return;
+      if (!started || gameOver) return;
       const speedMultiplier = 1.15 ** Math.floor(score / 50);
       const direction = Number(keys.right) - Number(keys.left);
       const movement = (direction + tiltPosition * 1.7) * hands.speed * dt;
@@ -214,7 +290,7 @@
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
         createHeart();
-        spawnTimer = 0.86 + Math.random() * 0.21;
+        spawnTimer = 0.72 + Math.random() * 0.175;
       }
 
       for (let index = hearts.length - 1; index >= 0; index--) {
@@ -236,7 +312,10 @@
         if (heart.y - heart.radius > HEIGHT) {
           hearts.splice(index, 1);
           lives = Math.max(0, lives - 1);
-          if (lives === 0) gameOver = true;
+          if (lives === 0) {
+            gameOver = true;
+            showGameOver();
+          }
         }
       }
     }
@@ -374,20 +453,6 @@
       ctx.textAlign = "left";
     }
 
-    function drawGameOver() {
-      if (!gameOver) return;
-      ctx.fillStyle = "#12142dcc";
-      ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      ctx.fillStyle = "#fff";
-      ctx.textAlign = "center";
-      ctx.font = "bold 48px Trebuchet MS, sans-serif";
-      ctx.fillText("Game Over", WIDTH / 2, HEIGHT / 2 - 34);
-      ctx.font = "24px Trebuchet MS, sans-serif";
-      ctx.fillText(`Du hast ${score} Herzen gefangen.`, WIDTH / 2, HEIGHT / 2 + 8);
-      ctx.fillText("Drücke R oder tippe zum Neustarten", WIDTH / 2, HEIGHT / 2 + 52);
-      ctx.textAlign = "left";
-    }
-
     function frame(time) {
       const dt = Math.min((time - lastTime) / 1000 || 0, 0.033);
       lastTime = time;
@@ -403,7 +468,6 @@
       }
       drawHands();
       drawHud();
-      drawGameOver();
       requestAnimationFrame(frame);
     }
 
