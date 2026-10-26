@@ -88,7 +88,7 @@
     <div class="frame">
       <canvas id="game" width="540" height="960" aria-label="Fange die fallenden Herzen mit deinen Händen"></canvas>
     </div>
-    <p class="help">Kippe dein Handy oder nutze ← → / A-D. Goldene Herzen schenken Leben. Die Runde läuft endlos weiter; R startet neu.</p>
+    <p class="help">Kippe dein Handy oder nutze ← → / A-D. Goldene Herzen schenken Leben. Bei 0 Leben ist Game Over; R startet neu.</p>
     <button class="motion-button" id="motionButton" type="button">Bewegungssteuerung aktivieren</button>
     <p class="motion-status" id="motionStatus" role="status" aria-live="polite"></p>
   </main>
@@ -109,6 +109,7 @@
     let lives;
     let spawnTimer;
     let lastTime = 0;
+    let gameOver;
     let motionEnabled = false;
     let neutralGamma = null;
     let tiltPosition = 0;
@@ -154,6 +155,7 @@
       lives = 3;
       spawnTimer = 0;
       hearts.length = 0;
+      gameOver = false;
       neutralGamma = null;
       tiltPosition = 0;
     }
@@ -179,6 +181,7 @@
     });
 
     canvas.addEventListener("pointerdown", (event) => {
+      if (gameOver) resetGame();
       canvas.setPointerCapture(event.pointerId);
       moveHandsTo(event.clientX);
     });
@@ -188,7 +191,7 @@
     motionButton.addEventListener("click", enableMotionControls);
 
     function createHeart() {
-      const golden = Math.random() < 0.1;
+      const golden = Math.random() < 0.05;
       const radius = (golden ? 18 : 15) + Math.random() * 8;
       hearts.push({
         x: radius + Math.random() * (WIDTH - radius * 2),
@@ -202,6 +205,7 @@
     }
 
     function update(dt) {
+      if (gameOver) return;
       const speedMultiplier = 1.15 ** Math.floor(score / 50);
       const direction = Number(keys.right) - Number(keys.left);
       const movement = (direction + tiltPosition * 1.7) * hands.speed * dt;
@@ -210,7 +214,7 @@
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
         createHeart();
-        spawnTimer = 0.6 + Math.random() * 0.15;
+        spawnTimer = 0.86 + Math.random() * 0.21;
       }
 
       for (let index = hearts.length - 1; index >= 0; index--) {
@@ -232,6 +236,7 @@
         if (heart.y - heart.radius > HEIGHT) {
           hearts.splice(index, 1);
           lives = Math.max(0, lives - 1);
+          if (lives === 0) gameOver = true;
         }
       }
     }
@@ -369,6 +374,20 @@
       ctx.textAlign = "left";
     }
 
+    function drawGameOver() {
+      if (!gameOver) return;
+      ctx.fillStyle = "#12142dcc";
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.font = "bold 48px Trebuchet MS, sans-serif";
+      ctx.fillText("Game Over", WIDTH / 2, HEIGHT / 2 - 34);
+      ctx.font = "24px Trebuchet MS, sans-serif";
+      ctx.fillText(`Du hast ${score} Herzen gefangen.`, WIDTH / 2, HEIGHT / 2 + 8);
+      ctx.fillText("Drücke R oder tippe zum Neustarten", WIDTH / 2, HEIGHT / 2 + 52);
+      ctx.textAlign = "left";
+    }
+
     function frame(time) {
       const dt = Math.min((time - lastTime) / 1000 || 0, 0.033);
       lastTime = time;
@@ -384,6 +403,7 @@
       }
       drawHands();
       drawHud();
+      drawGameOver();
       requestAnimationFrame(frame);
     }
 
