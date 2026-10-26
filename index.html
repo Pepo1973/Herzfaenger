@@ -385,73 +385,70 @@
     function drawHands() {
       ctx.save();
       ctx.translate(hands.x, hands.y);
-      for (const side of [0, 1]) {
+      for (const mirrored of [false, true]) {
         ctx.save();
-        ctx.translate(side === 0 ? 20 : hands.w - 20, 0);
-        ctx.scale(side === 0 ? 1 : -1, 1);
-        ctx.scale(0.9, 0.9);
+        if (mirrored) {
+          ctx.translate(hands.w, 0);
+          ctx.scale(-1, 1);
+        }
 
-        const skin = ctx.createLinearGradient(10, 14, 66, 66);
-        skin.addColorStop(0, "#ffd3b4");
-        skin.addColorStop(0.55, "#f6b48f");
-        skin.addColorStop(1, "#e99a78");
+        const skin = ctx.createLinearGradient(8, 4, 82, 82);
+        skin.addColorStop(0, "#ffe0c2");
+        skin.addColorStop(0.5, "#f5b98f");
+        skin.addColorStop(1, "#dc8c68");
         ctx.fillStyle = skin;
-        ctx.strokeStyle = "#d78569";
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ca805e";
+        ctx.lineWidth = 1.8;
         ctx.lineJoin = "round";
+        ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.moveTo(3, 70);
-        ctx.lineTo(15, 48);
-        ctx.quadraticCurveTo(18, 43, 23, 47);
-        ctx.lineTo(21, 26);
-        ctx.quadraticCurveTo(20, 19, 25, 18);
-        ctx.quadraticCurveTo(30, 17, 31, 24);
-        ctx.lineTo(34, 43);
-        ctx.lineTo(34, 17);
-        ctx.quadraticCurveTo(34, 10, 40, 10);
-        ctx.quadraticCurveTo(46, 10, 46, 17);
-        ctx.lineTo(47, 43);
-        ctx.lineTo(51, 23);
-        ctx.quadraticCurveTo(52, 16, 58, 18);
-        ctx.quadraticCurveTo(63, 19, 62, 26);
-        ctx.lineTo(59, 47);
-        ctx.lineTo(65, 35);
-        ctx.quadraticCurveTo(68, 29, 73, 32);
-        ctx.quadraticCurveTo(78, 35, 75, 42);
-        ctx.lineTo(65, 62);
-        ctx.quadraticCurveTo(62, 70, 53, 72);
-        ctx.lineTo(16, 72);
-        ctx.quadraticCurveTo(8, 72, 3, 70);
+        ctx.moveTo(8, 82);
+        ctx.lineTo(24, 82);
+        ctx.lineTo(42, 55);
+        ctx.quadraticCurveTo(47, 48, 55, 52);
+        ctx.lineTo(76, 65);
+        ctx.quadraticCurveTo(83, 69, 87, 63);
+        ctx.quadraticCurveTo(90, 57, 84, 52);
+        ctx.lineTo(61, 36);
+        ctx.lineTo(53, 17);
+        ctx.quadraticCurveTo(50, 10, 45, 12);
+        ctx.quadraticCurveTo(40, 14, 43, 22);
+        ctx.lineTo(46, 31);
+        ctx.lineTo(39, 8);
+        ctx.quadraticCurveTo(37, 1, 32, 2);
+        ctx.quadraticCurveTo(26, 3, 29, 11);
+        ctx.lineTo(35, 31);
+        ctx.lineTo(25, 12);
+        ctx.quadraticCurveTo(22, 5, 17, 8);
+        ctx.quadraticCurveTo(12, 11, 16, 18);
+        ctx.lineTo(26, 38);
+        ctx.lineTo(16, 27);
+        ctx.quadraticCurveTo(11, 22, 7, 26);
+        ctx.quadraticCurveTo(3, 30, 8, 36);
+        ctx.lineTo(24, 54);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        ctx.strokeStyle = "#ffe3d0";
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ffe7d2";
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(18, 53);
-        ctx.quadraticCurveTo(29, 57, 37, 55);
-        ctx.moveTo(43, 57);
-        ctx.quadraticCurveTo(52, 60, 60, 55);
+        ctx.moveTo(22, 36);
+        ctx.quadraticCurveTo(28, 42, 32, 49);
+        ctx.moveTo(31, 22);
+        ctx.lineTo(37, 34);
+        ctx.moveTo(45, 22);
+        ctx.lineTo(49, 33);
+        ctx.moveTo(56, 42);
+        ctx.quadraticCurveTo(67, 49, 78, 58);
         ctx.stroke();
-
-        ctx.fillStyle = "#ffe9dc";
-        for (const [x, y, angle] of [[24, 23, -0.1], [38, 15, 0], [55, 22, 0.1], [70, 36, 0.5]]) {
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.rotate(angle);
-          ctx.beginPath();
-          ctx.ellipse(0, 0, 2.2, 3.5, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
 
         ctx.fillStyle = "#b779d0";
         ctx.beginPath();
-        ctx.roundRect(2, 65, 17, 10, [3, 2, 3, 5]);
+        ctx.roundRect(7, 75, 23, 12, [4, 3, 4, 6]);
         ctx.fill();
         ctx.fillStyle = "#e9c4f2";
-        ctx.fillRect(5, 67, 10, 2);
+        ctx.fillRect(11, 78, 14, 2);
         ctx.restore();
       }
       ctx.restore();
