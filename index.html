@@ -196,7 +196,7 @@
         x: radius + Math.random() * (WIDTH - radius * 2),
         y: -radius,
         radius,
-        speed: 120 + Math.random() * 55 + Math.min(score * 2, 150),
+        speed: 120 + Math.random() * 55,
         rotation: (Math.random() - 0.5) * 0.55,
         spin: (Math.random() - 0.5) * 0.8
       });
@@ -204,15 +204,15 @@
 
     function update(dt) {
       if (gameOver) return;
-      const speedMultiplier = score >= 50 ? 1.1 : 1;
+      const speedMultiplier = 1.1 ** Math.floor(score / 50);
       const direction = Number(keys.right) - Number(keys.left);
-      const movement = (direction + tiltPosition * 1.25) * hands.speed * dt;
+      const movement = (direction + tiltPosition * 1.7) * hands.speed * dt;
       hands.x = Math.max(0, Math.min(WIDTH - hands.w, hands.x + movement));
 
-      spawnTimer -= dt * speedMultiplier;
+      spawnTimer -= dt;
       if (spawnTimer <= 0) {
         createHeart();
-        spawnTimer = Math.max(0.55, 1.2 - score * 0.01) + Math.random() * 0.3;
+        spawnTimer = 1.2 + Math.random() * 0.3;
       }
 
       for (let index = hearts.length - 1; index >= 0; index--) {
