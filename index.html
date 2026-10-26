@@ -136,12 +136,12 @@
       <div class="game-dialog" id="gameDialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle" aria-describedby="dialogMessage">
         <div class="dialog-card">
           <h2 id="dialogTitle">So wird gespielt</h2>
-          <p id="dialogMessage">Fange die roten Herzen mit deinen Händen. Goldene Herzen geben dir ein zusätzliches Leben. Wenn du ein Herz verpasst, verlierst du ein Leben.</p>
+          <p id="dialogMessage">Fange die roten Herzen mit deinen Händen. Goldene Herzen geben dir ein zusätzliches Leben. Schwarze Herzen kosten ein Leben. Verpasste rote Herzen kosten ebenfalls ein Leben.</p>
           <button id="dialogButton" type="button">Spiel starten</button>
         </div>
       </div>
     </div>
-    <p class="help">Kippe dein Handy oder nutze ← → / A-D. Goldene Herzen schenken Leben. R startet neu.</p>
+    <p class="help">Kippe dein Handy oder nutze ← → / A-D. Goldene Herzen schenken Leben; schwarze Herzen kosten eins. R startet neu.</p>
     <button class="motion-button" id="motionButton" type="button">Bewegungssteuerung aktivieren</button>
     <p class="motion-status" id="motionStatus" role="status" aria-live="polite"></p>
   </main>
@@ -267,13 +267,16 @@
     dialogButton.addEventListener("click", startGame);
 
     function createHeart() {
-      const golden = Math.random() < 0.05;
+      const typeRoll = Math.random();
+      const golden = typeRoll < 0.05;
+      const black = typeRoll >= 0.05 && typeRoll < 0.15;
       const radius = (golden ? 18 : 15) + Math.random() * 8;
       hearts.push({
         x: radius + Math.random() * (WIDTH - radius * 2),
         y: -radius,
         radius,
         golden,
+        black,
         speed: 120 + Math.random() * 55,
         rotation: (Math.random() - 0.5) * 0.55,
         spin: (Math.random() - 0.5) * 0.8
@@ -282,12 +285,13 @@
 
     function update(dt) {
       if (!started || gameOver) return;
-      const speedMultiplier = 1.15 ** Math.floor(score / 50);
+      const gameSpeed = 1.2;
+      const speedMultiplier = gameSpeed * (1.15 ** Math.floor(score / 50));
       const direction = Number(keys.right) - Number(keys.left);
-      const movement = (direction + tiltPosition * 1.7) * hands.speed * dt;
+      const movement = (direction + tiltPosition * 1.7) * hands.speed * gameSpeed * dt;
       hands.x = Math.max(0, Math.min(WIDTH - hands.w, hands.x + movement));
 
-      spawnTimer -= dt;
+      spawnTimer -= dt * gameSpeed;
       if (spawnTimer <= 0) {
         createHeart();
         spawnTimer = 0.72 + Math.random() * 0.175;
@@ -306,6 +310,14 @@
           hearts.splice(index, 1);
           score++;
           if (heart.golden) lives++;
+          if (heart.black) {
+            lives = Math.max(0, lives - 1);
+            if (lives === 0) {
+              gameOver = true;
+              showGameOver();
+              break;
+            }
+          }
           continue;
         }
 
@@ -320,7 +332,7 @@
       }
     }
 
-    function drawHeart(x, y, radius, rotation) {
+    function drawHeart(x, y, radius, rotation, black) {
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(rotation);
@@ -333,6 +345,11 @@
       ctx.bezierCurveTo(22, 3, 5, 14, 0, 18);
       ctx.closePath();
       ctx.fill();
+      if (black) {
+        ctx.strokeStyle = "#c8c8d8";
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -460,10 +477,10 @@
       drawBackground(time);
       for (const heart of hearts) {
         ctx.save();
-        ctx.shadowColor = heart.golden ? "#ffe17a" : "#ff668d";
+        ctx.shadowColor = heart.golden ? "#ffe17a" : heart.black ? "#bec4d8" : "#ff668d";
         ctx.shadowBlur = heart.golden ? 24 : 18;
-        ctx.fillStyle = heart.golden ? "#ffd447" : "#ff577f";
-        drawHeart(heart.x, heart.y, heart.radius, heart.rotation);
+        ctx.fillStyle = heart.golden ? "#ffd447" : heart.black ? "#171725" : "#ff577f";
+        drawHeart(heart.x, heart.y, heart.radius, heart.rotation, heart.black);
         ctx.restore();
       }
       drawHands();
