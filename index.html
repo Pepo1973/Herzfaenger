@@ -23,7 +23,7 @@
       background: radial-gradient(ellipse at 50% 0%, #3e3974 0%, #11152e 72%);
     }
 
-    main { width: min(100%, 900px); }
+    main { width: min(100%, 540px); }
 
     h1 {
       margin: 0 0 12px;
@@ -44,16 +44,8 @@
       display: block;
       width: 100%;
       height: auto;
-      aspect-ratio: 16 / 9;
+      aspect-ratio: 9 / 16;
       touch-action: none;
-    }
-
-    @media (orientation: portrait) {
-      body { padding: 12px; }
-      main { width: min(100%, 540px); }
-      h1 { margin-bottom: 8px; }
-      canvas { aspect-ratio: 9 / 16; }
-      .help { font-size: .85rem; }
     }
 
     .help {
@@ -68,7 +60,7 @@
   <main>
     <h1>🫶 Herzfänger</h1>
     <div class="frame">
-      <canvas id="game" width="960" height="540" aria-label="Fange die fallenden Herzen mit deinen Händen"></canvas>
+      <canvas id="game" width="540" height="960" aria-label="Fange die fallenden Herzen mit deinen Händen"></canvas>
     </div>
     <p class="help">Bewege deine Hände mit ← → oder A/D – am Handy einfach über das Spielfeld streichen. R startet neu.</p>
   </main>
@@ -76,8 +68,8 @@
   <script>
     const canvas = document.querySelector("#game");
     const ctx = canvas.getContext("2d");
-    let WIDTH = canvas.width;
-    let HEIGHT = canvas.height;
+    const WIDTH = canvas.width;
+    const HEIGHT = canvas.height;
     const keys = { left: false, right: false };
     const hearts = [];
     let sparkles = [];
@@ -88,35 +80,6 @@
     let spawnTimer;
     let lastTime = 0;
     let gameOver;
-
-    function resizeGame() {
-      const oldWidth = WIDTH;
-      const oldHeight = HEIGHT;
-      const portrait = window.matchMedia("(orientation: portrait)").matches;
-      const nextWidth = portrait ? 540 : 960;
-      const nextHeight = portrait ? 960 : 540;
-      if (WIDTH === nextWidth && HEIGHT === nextHeight) return;
-
-      WIDTH = nextWidth;
-      HEIGHT = nextHeight;
-      canvas.width = WIDTH;
-      canvas.height = HEIGHT;
-      sparkles = Array.from({ length: 90 }, (_, index) => ({
-        x: (index * 157 + 23) % WIDTH,
-        y: (index * 97 + 17) % HEIGHT,
-        size: 1 + (index % 3) * 0.7,
-        phase: index * 0.7
-      }));
-
-      if (hands) {
-        hands.x = Math.min(WIDTH - hands.w, hands.x * WIDTH / oldWidth);
-        hands.y = HEIGHT - 105;
-      }
-      for (const heart of hearts) {
-        heart.x *= WIDTH / oldWidth;
-        heart.y *= HEIGHT / oldHeight;
-      }
-    }
 
     function resetGame() {
       hands = { x: WIDTH / 2 - 88, y: HEIGHT - 105, w: 176, h: 70, speed: 640 };
@@ -368,9 +331,6 @@
       requestAnimationFrame(frame);
     }
 
-    window.addEventListener("resize", resizeGame);
-    window.addEventListener("orientationchange", resizeGame);
-    resizeGame();
     resetGame();
     requestAnimationFrame(frame);
   </script>
