@@ -48,6 +48,14 @@
       touch-action: none;
     }
 
+    @media (orientation: portrait) {
+      body { padding: 12px; }
+      main { width: min(100%, 540px); }
+      h1 { margin-bottom: 8px; }
+      canvas { aspect-ratio: 9 / 16; }
+      .help { font-size: .85rem; }
+    }
+
     .help {
       margin: 12px 0 0;
       text-align: center;
@@ -68,16 +76,11 @@
   <script>
     const canvas = document.querySelector("#game");
     const ctx = canvas.getContext("2d");
-    const WIDTH = canvas.width;
-    const HEIGHT = canvas.height;
+    let WIDTH = canvas.width;
+    let HEIGHT = canvas.height;
     const keys = { left: false, right: false };
     const hearts = [];
-    const sparkles = Array.from({ length: 65 }, (_, index) => ({
-      x: (index * 157 + 23) % WIDTH,
-      y: (index * 97 + 17) % HEIGHT,
-      size: 1 + (index % 3) * 0.7,
-      phase: index * 0.7
-    }));
+    let sparkles = [];
 
     let hands;
     let score;
@@ -85,6 +88,35 @@
     let spawnTimer;
     let lastTime = 0;
     let gameOver;
+
+    function resizeGame() {
+      const oldWidth = WIDTH;
+      const oldHeight = HEIGHT;
+      const portrait = window.matchMedia("(orientation: portrait)").matches;
+      const nextWidth = portrait ? 540 : 960;
+      const nextHeight = portrait ? 960 : 540;
+      if (WIDTH === nextWidth && HEIGHT === nextHeight) return;
+
+      WIDTH = nextWidth;
+      HEIGHT = nextHeight;
+      canvas.width = WIDTH;
+      canvas.height = HEIGHT;
+      sparkles = Array.from({ length: 90 }, (_, index) => ({
+        x: (index * 157 + 23) % WIDTH,
+        y: (index * 97 + 17) % HEIGHT,
+        size: 1 + (index % 3) * 0.7,
+        phase: index * 0.7
+      }));
+
+      if (hands) {
+        hands.x = Math.min(WIDTH - hands.w, hands.x * WIDTH / oldWidth);
+        hands.y = HEIGHT - 105;
+      }
+      for (const heart of hearts) {
+        heart.x *= WIDTH / oldWidth;
+        heart.y *= HEIGHT / oldHeight;
+      }
+    }
 
     function resetGame() {
       hands = { x: WIDTH / 2 - 88, y: HEIGHT - 105, w: 176, h: 70, speed: 640 };
@@ -205,11 +237,11 @@
 
       ctx.fillStyle = "#f0c77a";
       ctx.beginPath();
-      ctx.arc(790, 118, 49, 0, Math.PI * 2);
+      ctx.arc(WIDTH * 0.82, HEIGHT * 0.12, 49, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = "#34345e";
       ctx.beginPath();
-      ctx.arc(810, 101, 48, 0, Math.PI * 2);
+      ctx.arc(WIDTH * 0.84, HEIGHT * 0.105, 48, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -336,6 +368,9 @@
       requestAnimationFrame(frame);
     }
 
+    window.addEventListener("resize", resizeGame);
+    window.addEventListener("orientationchange", resizeGame);
+    resizeGame();
     resetGame();
     requestAnimationFrame(frame);
   </script>
