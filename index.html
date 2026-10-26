@@ -323,10 +323,12 @@
 
         if (heart.y - heart.radius > HEIGHT) {
           hearts.splice(index, 1);
-          lives = Math.max(0, lives - 1);
-          if (lives === 0) {
-            gameOver = true;
-            showGameOver();
+          if (!heart.black) {
+            lives = Math.max(0, lives - 1);
+            if (lives === 0) {
+              gameOver = true;
+              showGameOver();
+            }
           }
         }
       }
