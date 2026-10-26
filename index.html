@@ -204,10 +204,11 @@
 
     function update(dt) {
       if (gameOver) return;
+      const speedMultiplier = score >= 50 ? 1.1 : 1;
       const direction = Number(keys.right) - Number(keys.left);
       hands.x = Math.max(0, Math.min(WIDTH - hands.w, hands.x + (direction + tiltPosition) * hands.speed * dt));
 
-      spawnTimer -= dt;
+      spawnTimer -= dt * speedMultiplier;
       if (spawnTimer <= 0) {
         createHeart();
         spawnTimer = Math.max(0.34, 0.9 - score * 0.012) + Math.random() * 0.22;
@@ -215,7 +216,7 @@
 
       for (let index = hearts.length - 1; index >= 0; index--) {
         const heart = hearts[index];
-        heart.y += heart.speed * dt;
+        heart.y += heart.speed * speedMultiplier * dt;
         heart.rotation += heart.spin * dt;
 
         const caught = heart.y + heart.radius >= hands.y &&
