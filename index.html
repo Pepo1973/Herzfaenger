@@ -206,12 +206,13 @@
       if (gameOver) return;
       const speedMultiplier = score >= 50 ? 1.1 : 1;
       const direction = Number(keys.right) - Number(keys.left);
-      hands.x = Math.max(0, Math.min(WIDTH - hands.w, hands.x + (direction + tiltPosition) * hands.speed * dt));
+      const movement = (direction + tiltPosition * 1.25) * hands.speed * dt;
+      hands.x = Math.max(0, Math.min(WIDTH - hands.w, hands.x + movement));
 
       spawnTimer -= dt * speedMultiplier;
       if (spawnTimer <= 0) {
         createHeart();
-        spawnTimer = Math.max(0.34, 0.9 - score * 0.012) + Math.random() * 0.22;
+        spawnTimer = Math.max(0.55, 1.2 - score * 0.01) + Math.random() * 0.3;
       }
 
       for (let index = hearts.length - 1; index >= 0; index--) {
