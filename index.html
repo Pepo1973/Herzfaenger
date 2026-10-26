@@ -136,12 +136,12 @@
       <div class="game-dialog" id="gameDialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle" aria-describedby="dialogMessage">
         <div class="dialog-card">
           <h2 id="dialogTitle">So wird gespielt</h2>
-          <p id="dialogMessage">Fange die roten Herzen mit deinen Händen. Goldene Herzen geben dir ein zusätzliches Leben. Schwarze Herzen kosten ein Leben. Verpasste rote Herzen kosten ebenfalls ein Leben.</p>
+          <p id="dialogMessage">Fange die roten Herzen mit deinen Händen. Verpasst du ein rotes Herz, verlierst du ein Leben. Goldene Herzen geben dir ein zusätzliches Leben; gefangene schwarze Herzen kosten eins. Verpasste goldene oder schwarze Herzen kosten nichts.</p>
           <button id="dialogButton" type="button">Spiel starten</button>
         </div>
       </div>
     </div>
-    <p class="help">Kippe dein Handy oder nutze ← → / A-D. Goldene Herzen schenken Leben; schwarze Herzen kosten eins. R startet neu.</p>
+    <p class="help">Kippe dein Handy oder nutze ← → / A-D. Nur verpasste rote Herzen kosten ein Leben. R startet neu.</p>
     <button class="motion-button" id="motionButton" type="button">Bewegungssteuerung aktivieren</button>
     <p class="motion-status" id="motionStatus" role="status" aria-live="polite"></p>
   </main>
@@ -323,7 +323,7 @@
 
         if (heart.y - heart.radius > HEIGHT) {
           hearts.splice(index, 1);
-          if (!heart.black) {
+          if (!heart.black && !heart.golden) {
             lives = Math.max(0, lives - 1);
             if (lives === 0) {
               gameOver = true;
