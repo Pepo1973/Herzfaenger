@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Herzfänger</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Trebuchet MS", system-ui, sans-serif;
+      background: #11152e;
+      color: #fff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: radial-gradient(ellipse at 50% 0%, #3e3974 0%, #11152e 72%);
+    }
+
+    main { width: min(100%, 900px); }
+
+    h1 {
+      margin: 0 0 12px;
+      text-align: center;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      letter-spacing: .04em;
+    }
+
+    .frame {
+      overflow: hidden;
+      border: 3px solid #f5d78c;
+      border-radius: 18px;
+      background: #22264c;
+      box-shadow: 0 18px 60px #0007;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      touch-action: none;
+    }
+
+    .help {
+      margin: 12px 0 0;
+      text-align: center;
+      color: #e1ddff;
+      font-size: .95rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🫶 Herzfänger</h1>
+    <div class="frame">
+      <canvas id="game" width="960" height="540" aria-label="Fange die fallenden Herzen mit deinen Händen"></canvas>
+    </div>
+    <p class="help">Bewege deine Hände mit ← → oder A/D – am Handy einfach über das Spielfeld streichen. R startet neu.</p>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const ctx = canvas.getContext("2d");
+    const WIDTH = canvas.width;
+    const HEIGHT = canvas.height;
+    const keys = { left: false, right: false };
+    const hearts = [];
+    const sparkles = Array.from({ length: 65 }, (_, index) => ({
+      x: (index * 157 + 23) % WIDTH,
+      y: (index * 97 + 17) % HEIGHT,
+      size: 1 + (index % 3) * 0.7,
+      phase: index * 0.7
+    }));
+
+    let hands;
+    let score;
+    let misses;
+    let spawnTimer;
+    let lastTime = 0;
+    let gameOver;
+
+    function resetGame() {
+      hands = { x: WIDTH / 2 - 88, y: HEIGHT - 105, w: 176, h: 70, speed: 640 };
+      score = 0;
+      misses = 0;
+      spawnTimer = 0;
+      hearts.length = 0;
+      gameOver = false;
+    }
+
+    function moveHandsTo(clientX) {
+      const bounds = canvas.getBoundingClientRect();
+      const scale = WIDTH / bounds.width;
+      hands.x = Math.max(0, Math.min(WIDTH - hands.w, (clientX - bounds.left) * scale - hands.w / 2));
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if (["arrowleft", "arrowright"].includes(key)) event.preventDefault();
+      if (key === "r" || (gameOver && (key === " " || key === "enter"))) resetGame();
+      if (key === "arrowleft" || key === "a") keys.left = true;
+      if (key === "arrowright" || key === "d") keys.right = true;
+    });
+
+    window.addEventListener("keyup", (event) => {
+      const key = event.key.toLowerCase();
+      if (key === "arrowleft" || key === "a") keys.left = false;
+      if (key === "arrowright" || key === "d") keys.right = false;
+    });
+
+    canvas.addEventListener("pointerdown", (event) => {
+      if (gameOver) resetGame();
+      canvas.setPointerCapture(event.pointerId);
+      moveHandsTo(event.clientX);
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (event.buttons || event.pointerType === "touch") moveHandsTo(event.clientX);
+    });
+
+    function createHeart() {
+      const radius = 15 + Math.random() * 8;
+      hearts.push({
+        x: radius + Math.random() * (WIDTH - radius * 2),
+        y: -radius,
+        radius,
+        speed: 120 + Math.random() * 55 + Math.min(score * 2, 150),
+        rotation: (Math.random() - 0.5) * 0.55,
+        spin: (Math.random() - 0.5) * 0.8
+      });
+    }
+
+    function update(dt) {
+      if (gameOver) return;
+      const direction = Number(keys.right) - Number(keys.left);
+      hands.x = Math.max(0, Math.min(WIDTH - hands.w, hands.x + direction * hands.speed * dt));
+
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        createHeart();
+        spawnTimer = Math.max(0.34, 0.9 - score * 0.012) + Math.random() * 0.22;
+      }
+
+      for (let index = hearts.length - 1; index >= 0; index--) {
+        const heart = hearts[index];
+        heart.y += heart.speed * dt;
+        heart.rotation += heart.spin * dt;
+
+        const caught = heart.y + heart.radius >= hands.y &&
+          heart.y - heart.radius <= hands.y + hands.h &&
+          heart.x + heart.radius >= hands.x - 10 &&
+          heart.x - heart.radius <= hands.x + hands.w + 10;
+        if (caught) {
+          hearts.splice(index, 1);
+          score++;
+          continue;
+        }
+
+        if (heart.y - heart.radius > HEIGHT) {
+          hearts.splice(index, 1);
+          misses = Math.min(3, misses + 1);
+          if (misses >= 3) gameOver = true;
+        }
+      }
+    }
+
+    function drawHeart(x, y, radius, rotation) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      ctx.scale(radius / 22, radius / 22);
+      ctx.beginPath();
+      ctx.moveTo(0, 18);
+      ctx.bezierCurveTo(-5, 14, -22, 3, -22, -7);
+      ctx.bezierCurveTo(-22, -20, -5, -23, 0, -11);
+      ctx.bezierCurveTo(5, -23, 22, -20, 22, -7);
+      ctx.bezierCurveTo(22, 3, 5, 14, 0, 18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawBackground(time) {
+      const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+      sky.addColorStop(0, "#22264c");
+      sky.addColorStop(1, "#554477");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+      for (const sparkle of sparkles) {
+        const glow = 0.35 + (Math.sin(time / 500 + sparkle.phase) + 1) * 0.3;
+        ctx.globalAlpha = glow;
+        ctx.fillStyle = "#fff4c1";
+        ctx.beginPath();
+        ctx.arc(sparkle.x, sparkle.y, sparkle.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = "#f0c77a";
+      ctx.beginPath();
+      ctx.arc(790, 118, 49, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#34345e";
+      ctx.beginPath();
+      ctx.arc(810, 101, 48, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawHands() {
+      ctx.save();
+      ctx.translate(hands.x, hands.y);
+      for (const side of [0, 1]) {
+        ctx.save();
+        ctx.translate(side === 0 ? 20 : hands.w - 20, 0);
+        ctx.scale(side === 0 ? 1 : -1, 1);
+        ctx.scale(0.9, 0.9);
+
+        const skin = ctx.createLinearGradient(10, 14, 66, 66);
+        skin.addColorStop(0, "#ffd3b4");
+        skin.addColorStop(0.55, "#f6b48f");
+        skin.addColorStop(1, "#e99a78");
+        ctx.fillStyle = skin;
+        ctx.strokeStyle = "#d78569";
+        ctx.lineWidth = 2;
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(3, 70);
+        ctx.lineTo(15, 48);
+        ctx.quadraticCurveTo(18, 43, 23, 47);
+        ctx.lineTo(21, 26);
+        ctx.quadraticCurveTo(20, 19, 25, 18);
+        ctx.quadraticCurveTo(30, 17, 31, 24);
+        ctx.lineTo(34, 43);
+        ctx.lineTo(34, 17);
+        ctx.quadraticCurveTo(34, 10, 40, 10);
+        ctx.quadraticCurveTo(46, 10, 46, 17);
+        ctx.lineTo(47, 43);
+        ctx.lineTo(51, 23);
+        ctx.quadraticCurveTo(52, 16, 58, 18);
+        ctx.quadraticCurveTo(63, 19, 62, 26);
+        ctx.lineTo(59, 47);
+        ctx.lineTo(65, 35);
+        ctx.quadraticCurveTo(68, 29, 73, 32);
+        ctx.quadraticCurveTo(78, 35, 75, 42);
+        ctx.lineTo(65, 62);
+        ctx.quadraticCurveTo(62, 70, 53, 72);
+        ctx.lineTo(16, 72);
+        ctx.quadraticCurveTo(8, 72, 3, 70);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = "#ffe3d0";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(18, 53);
+        ctx.quadraticCurveTo(29, 57, 37, 55);
+        ctx.moveTo(43, 57);
+        ctx.quadraticCurveTo(52, 60, 60, 55);
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffe9dc";
+        for (const [x, y, angle] of [[24, 23, -0.1], [38, 15, 0], [55, 22, 0.1], [70, 36, 0.5]]) {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(angle);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 2.2, 3.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        ctx.fillStyle = "#b779d0";
+        ctx.beginPath();
+        ctx.roundRect(2, 65, 17, 10, [3, 2, 3, 5]);
+        ctx.fill();
+        ctx.fillStyle = "#e9c4f2";
+        ctx.fillRect(5, 67, 10, 2);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    function drawHud() {
+      ctx.fillStyle = "#161a39cc";
+      ctx.beginPath();
+      ctx.roundRect(20, 18, 205, 54, 15);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 22px Trebuchet MS, sans-serif";
+      ctx.fillText(`Herzen: ${score}`, 38, 53);
+
+      ctx.textAlign = "right";
+      ctx.font = "24px Trebuchet MS, sans-serif";
+      ctx.fillText(`Fehler: ${"❤️".repeat(3 - misses)}${"🖤".repeat(misses)}`, WIDTH - 24, 54);
+      ctx.textAlign = "left";
+    }
+
+    function drawOverlay() {
+      if (!gameOver) return;
+      ctx.fillStyle = "#12142dcc";
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.font = "bold 48px Trebuchet MS, sans-serif";
+      ctx.fillText("Oh nein!", WIDTH / 2, HEIGHT / 2 - 34);
+      ctx.font = "24px Trebuchet MS, sans-serif";
+      ctx.fillText(`Du hast ${score} Herzen gefangen.`, WIDTH / 2, HEIGHT / 2 + 8);
+      ctx.fillText("Drücke R oder tippe zum Neustarten", WIDTH / 2, HEIGHT / 2 + 52);
+      ctx.textAlign = "left";
+    }
+
+    function frame(time) {
+      const dt = Math.min((time - lastTime) / 1000 || 0, 0.033);
+      lastTime = time;
+      update(dt);
+      drawBackground(time);
+      for (const heart of hearts) {
+        ctx.save();
+        ctx.shadowColor = "#ff668d";
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = "#ff577f";
+        drawHeart(heart.x, heart.y, heart.radius, heart.rotation);
+        ctx.restore();
+      }
+      drawHands();
+      drawHud();
+      drawOverlay();
+      requestAnimationFrame(frame);
+    }
+
+    resetGame();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
