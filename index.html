@@ -54,6 +54,32 @@
       color: #e1ddff;
       font-size: .95rem;
     }
+
+    .motion-button {
+      display: block;
+      margin: 14px auto 0;
+      padding: 11px 18px;
+      border: 1px solid #ffe2a0;
+      border-radius: 12px;
+      background: #40396f;
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .motion-button:disabled {
+      opacity: .7;
+      cursor: default;
+    }
+
+    .motion-status {
+      min-height: 1.3em;
+      margin: 8px 0 0;
+      color: #ffe2a0;
+      text-align: center;
+      font-size: .9rem;
+    }
   </style>
 </head>
 <body>
@@ -62,7 +88,9 @@
     <div class="frame">
       <canvas id="game" width="540" height="960" aria-label="Fange die fallenden Herzen mit deinen Händen"></canvas>
     </div>
-    <p class="help">Bewege deine Hände mit ← → oder A/D – am Handy einfach über das Spielfeld streichen. R startet neu.</p>
+    <p class="help">Kippe dein Handy nach links oder rechts. Alternativ: ← →, A/D oder über das Spielfeld streichen. R startet neu.</p>
+    <button class="motion-button" id="motionButton" type="button">Bewegungssteuerung aktivieren</button>
+    <p class="motion-status" id="motionStatus" role="status" aria-live="polite"></p>
   </main>
 
   <script>
@@ -73,6 +101,8 @@
     const keys = { left: false, right: false };
     const hearts = [];
     let sparkles = [];
+    const motionButton = document.querySelector("#motionButton");
+    const motionStatus = document.querySelector("#motionStatus");
 
     let hands;
     let score;
@@ -80,6 +110,44 @@
     let spawnTimer;
     let lastTime = 0;
     let gameOver;
+    let motionEnabled = false;
+    let neutralGamma = null;
+    let tiltPosition = 0;
+
+    async function enableMotionControls() {
+      if (!("DeviceOrientationEvent" in window)) {
+        motionStatus.textContent = "Dieses Gerät unterstützt keine Bewegungssensoren.";
+        return;
+      }
+
+      try {
+        if (typeof DeviceOrientationEvent.requestPermission === "function") {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission !== "granted") {
+            motionStatus.textContent = "Sensorfreigabe wurde nicht erteilt.";
+            return;
+          }
+        }
+
+        window.addEventListener("deviceorientation", handleDeviceOrientation);
+        motionEnabled = true;
+        motionButton.disabled = true;
+        motionButton.textContent = "Bewegungssteuerung aktiviert";
+        motionStatus.textContent = "Kippe das Handy, um die Hände zu bewegen.";
+      } catch (error) {
+        motionStatus.textContent = "Sensor konnte nicht aktiviert werden. Prüfe die Browserfreigabe.";
+        console.error("Bewegungssteuerung konnte nicht aktiviert werden:", error);
+      }
+    }
+
+    function handleDeviceOrientation(event) {
+      if (event.gamma === null) return;
+      if (neutralGamma === null) neutralGamma = event.gamma;
+      const tilt = event.gamma - neutralGamma;
+      const deadZone = 4;
+      const usableTilt = Math.abs(tilt) < deadZone ? 0 : tilt - Math.sign(tilt) * deadZone;
+      tiltPosition = Math.max(-1, Math.min(1, usableTilt / 22));
+    }
 
     function resetGame() {
       hands = { x: WIDTH / 2 - 88, y: HEIGHT - 105, w: 176, h: 70, speed: 640 };
@@ -88,6 +156,8 @@
       spawnTimer = 0;
       hearts.length = 0;
       gameOver = false;
+      neutralGamma = null;
+      tiltPosition = 0;
     }
 
     function moveHandsTo(clientX) {
@@ -118,6 +188,7 @@
     canvas.addEventListener("pointermove", (event) => {
       if (event.buttons || event.pointerType === "touch") moveHandsTo(event.clientX);
     });
+    motionButton.addEventListener("click", enableMotionControls);
 
     function createHeart() {
       const radius = 15 + Math.random() * 8;
@@ -134,7 +205,7 @@
     function update(dt) {
       if (gameOver) return;
       const direction = Number(keys.right) - Number(keys.left);
-      hands.x = Math.max(0, Math.min(WIDTH - hands.w, hands.x + direction * hands.speed * dt));
+      hands.x = Math.max(0, Math.min(WIDTH - hands.w, hands.x + (direction + tiltPosition) * hands.speed * dt));
 
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
